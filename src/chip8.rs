@@ -8,10 +8,10 @@ pub struct Chip8{
     pub display:[[bool;64];32],
     v:[u8;16],
     stack:Vec<u16>,
-    keys:[bool;16],
+    pub keys:[bool;16],
     delay:u8,
     sound:u8,
-    released_key:Option<u8>
+    pub released_key:Option<u8>
 }
 impl Chip8{
     pub fn new(path:&str)->Self{
@@ -132,5 +132,6 @@ impl Chip8{
     pub fn step(&mut self){
         let op = self.fetch();
         self.decode_and_execute(op);
+        self.released_key = None;
     }
 }
