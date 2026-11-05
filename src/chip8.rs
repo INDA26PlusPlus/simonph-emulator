@@ -76,6 +76,9 @@ impl Chip8{
             }
         }
     }
+    pub fn decrease_timers(&mut self){
+        if self.delay != 0{self.delay-=1;}
+    }
     fn decode_and_execute(&mut self, op:u16){
         let kind = (op&0xF000) >> 12;
         let x = ((op&0x0F00) >> 8) as usize;
@@ -107,24 +110,21 @@ impl Chip8{
                         let (r,c) = self.v[x].overflowing_sub(self.v[y]);
                         self.v[x] = r; self.v[0xF] = (!c) as u8;
                     },
-                    0x6 => {let (r,c) = self.v[x].overflowing_shl(1); self.v[x] = r; self.v[0xF] = c as u8;}
-                    0x7 => {
-                        let (r,c) = self.v[y].overflowing_sub(self.v[x]);
-                        self.v[x] = r; self.v[0xF] = (!c) as u8;
-                    },
+                    0x6 => {let c = self.v[x]&1; self.v[x] >>= 1; self.v[0xF] = c},
+                    0x7 => {let c = (self.v[x] >> 7)&1; self.v[x] <<= 1; self.v[0xF] = c},
                     0xE => {let (r,c) = self.v[x].overflowing_shr(1); self.v[x] = r; self.v[0xF] = c as u8;},
-                    _ => println!("unexpected command {}", op),
+                    _ => println!("unknown instruction {:04X}", op)
                 }
             }
             0x9 => {if self.v[x] != self.v[y] {self.pc += 2}},
             0xA => self.i = nnn,
-            0xB => self.i = self.v[0x0] as u16 + nnn,
+            0xB => self.pc = self.v[0x0] as u16 + nnn,
             0xC => self.v[x] = rand::random::<u8>()&nn,
             0xD => self.display_command(self.v[x], self.v[y], n),
             0xE => match nn{
                 0x9E => {if self.keys[self.v[x] as usize] {self.pc += 2}},
                 0xA1 => {if !self.keys[self.v[x] as usize] {self.pc += 2}},
-                _ => println!("unknown instruction {}", op)
+                _ => println!("unknown instruction {:04X}", op)
             }
             0xF => match nn{
                 0x07 => self.v[x] = self.delay,
@@ -132,6 +132,7 @@ impl Chip8{
                 0x15 => self.delay = self.v[x],
                 0x18 => self.sound = self.v[x],
                 0x1E => self.i = self.i.wrapping_add(self.v[x] as u16),
+                0x29 => self.i = (FONT_START + (self.v[x] & 0x0F) as usize * 5) as u16,
                 0x33 => {
                     let fi = self.v[x] / 100;
                     let si = (self.v[x] / 10)%10;
@@ -139,18 +140,18 @@ impl Chip8{
                     self.mem[self.i as usize] = fi; self.mem[self.i as usize+1] = si; self.mem[self.i as usize +2] = ti;    
                 }
                 0x55 => {
-                    for i in 0..x{
+                    for i in 0..=x{
                         self.mem[self.i as usize + i] = self.v[i];
                     }
                 }
                 0x65 => {
-                    for i in 0..x{
+                    for i in 0..=x{
                         self.v[i] = self.mem[self.i as usize + i];
                     }
                 }
-                _ => println!("unknown instruction {}", op)
+                _ => println!("unknown instruction {:04X}", op)
             }
-            _ => println!("unknown instruction {}", kind)
+            _ => println!("unknown instruction {:04X}", op)
         }
     }
     pub fn step(&mut self){

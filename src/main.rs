@@ -24,11 +24,16 @@ const KEYS:[(KeyCode,usize);16]= [
 async fn main() {
     //let file = "chip8-test-suite/bin/1-chip8-logo.ch8";
     let file = "chip8-test-suite/bin/2-ibm-logo.ch8";
+    //let file = "chip8-test-suite/bin/3-corax+.ch8";
+    //let file= "chip8-test-suite/bin/4-flags.ch8";
+    //let file = "chip8-test-suite/bin/5-quirks.ch8";
+    //let file = "chip8-test-suite/bin/6-keypad.ch8";
+    //let file = "chip8-test-suite/bin/8-scrolling.ch8";
     let mut cpu = chip8::Chip8::new(file);
     let mut acc = 0.0;
     let tick = 1.0/60.0;
     loop{
-        clear_background(BLACK);
+        
         for (keycode, keyi) in KEYS{
             match (is_key_down(keycode), cpu.keys[keyi]){
                 (false,true) => {cpu.keys[keyi] = false; cpu.released_key = Some(keyi as u8);},
@@ -39,15 +44,17 @@ async fn main() {
         acc += get_frame_time();
         while acc >= tick{
             acc -= tick;
+            cpu.decrease_timers();
             for _ in 0..11{
                 cpu.step();
             }
-            let scale = screen_width()/WIDTH as f32;
-            for i in 0..HEIGHT{
-                for j in 0..WIDTH{
-                    if cpu.display[i][j] == true{
-                        draw_rectangle(j as f32*scale, i as f32 * scale, scale, scale, WHITE);
-                    }
+        }
+        let scale = screen_width()/WIDTH as f32;
+        clear_background(BLACK);
+        for i in 0..HEIGHT{
+            for j in 0..WIDTH{
+                if cpu.display[i][j] == true{
+                    draw_rectangle(j as f32*scale, i as f32 * scale, scale, scale, WHITE);
                 }
             }
         }
